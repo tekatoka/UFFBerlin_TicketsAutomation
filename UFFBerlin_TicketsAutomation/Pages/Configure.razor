@@ -1,0 +1,42 @@
+﻿@page "/configure"
+@inject IConfiguration Configuration
+
+<h3>Configuration</h3>
+
+<label>Source Folder ID:</label>
+<input @bind="sourceFolderId" />
+<br />
+<label>Destination Folder ID:</label>
+<input @bind="destinationFolderId" />
+<br />
+<label>Email HTML Body:</label>
+<textarea @bind="emailBody" rows="5"></textarea>
+<br />
+<button class="btn btn-primary" @onclick="SaveConfiguration">Save Configuration</button>
+
+<p>@statusMessage</p>
+
+@code {
+    private string sourceFolderId;
+    private string destinationFolderId;
+    private string emailBody;
+    private string statusMessage = "";
+
+    protected override void OnInitialized()
+    {
+        sourceFolderId = Configuration["GoogleApi:SourceFolderId"];
+        destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
+        emailBody = Configuration["GoogleApi:EmailBody"];
+    }
+
+    private void SaveConfiguration()
+    {
+        // Logic to save configuration (e.g., to a file or database)
+        // For demonstration, we'll just update the Configuration in memory
+        Configuration["GoogleApi:SourceFolderId"] = sourceFolderId;
+        Configuration["GoogleApi:DestinationFolderId"] = destinationFolderId;
+        Configuration["GoogleApi:EmailBody"] = emailBody;
+
+        statusMessage = "Configuration saved!";
+    }
+}

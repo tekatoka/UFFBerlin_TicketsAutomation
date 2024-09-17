@@ -1,0 +1,127 @@
+﻿@page "/send-emails"
+@inject Data.GoogleDriveService GoogleDriveService
+@inject Data.EmailService EmailService
+@inject IConfiguration Configuration
+
+<h3>Send Emails</h3>
+
+<button class="btn btn-primary" @onclick="SendEmailsToUsers" disabled="@isSending">Send Emails to Users</button>
+
+<h4>Email Sending Progress</h4>
+
+<ul>
+    @foreach (var emailStatus in emailStatuses)
+    {
+        <li>@emailStatus.Email: <strong>@emailStatus.Status</strong></li>
+    }
+</ul>
+
+<h4>Log</h4>
+<textarea style="width: 100%; height: 200px;" readonly>@logContent</textarea>
+
+<p>@statusMessage</p>
+
+@code {
+    private string statusMessage = "";
+    private bool isSending = false;
+    private List<EmailStatus> emailStatuses = new();
+    private string logContent = "";
+
+    private string destinationFolderId;
+    private string sentEmailsFolderId;
+    private string emailSubject;
+    private string emailBody;
+
+    protected override void OnInitialized()
+    {
+        destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
+        sentEmailsFolderId = Configuration["GoogleApi:SentEmailsFolderId"];
+        emailSubject = Configuration["GoogleApi:EmailSubject"];
+        emailBody = Configuration["GoogleApi:EmailBody"];
+    }
+
+    private async Task SendEmailsToUsers()
+    {
+        isSending = true;
+        try
+        {
+            // List all user folders in the destination folder
+            var userFolders = await GoogleDriveService.ListFoldersAsync(destinationFolderId);
+
+            // Initialize the status list
+            emailStatuses = userFolders.Select(folder => new EmailStatus { Email = folder.Name, Status = "In Queue" }).ToList();
+
+            // Update UI to reflect the queued status
+            StateHasChanged();
+
+            foreach (var folder in userFolders)
+            {
+                var emailStatus = emailStatuses.First(e => e.Email == folder.Name);
+                var attachmentPaths = await GoogleDriveService.DownloadFilesFromFolderAsync(folder.Id);
+
+                try
+                {
+                    // Mark email as "Sending"
+                    emailStatus.Status = "Sending";
+                    AddToLog($"Sending email to {folder.Name}");
+                    StateHasChanged();
+
+                    // Send the email
+                    await EmailService.SendEmailAsync(folder.Name, emailSubject, emailBody, attachmentPaths);
+
+                    // Mark email as "Sent"
+                    emailStatus.Status = "Sent";
+                    AddToLog($"Email sent to {folder.Name}");
+
+                    // Move folder to the archive folder
+                    await GoogleDriveService.MoveFolderAsync(folder.Id, sentEmailsFolderId);
+                    AddToLog($"Folder moved for {folder.Name}");
+                }
+                catch (Exception ex)
+                {
+                    // Mark email as "Failed"
+                    emailStatus.Status = "Failed";
+                    AddToLog($"Failed to send email to {folder.Name}: {ex.Message}");
+                }
+                finally
+                {
+                    // Clean up temporary files
+                    foreach (var path in attachmentPaths)
+                    {
+                        if (File.Exists(path))
+                        {
+                            File.Delete(path);
+                        }
+                    }
+
+                    // Update UI after each email is processed
+                    StateHasChanged();
+                }
+            }
+
+            statusMessage = "Emails processed successfully!";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error processing emails: {ex.Message}";
+            AddToLog(statusMessage);
+        }
+        finally
+        {
+            isSending = false;
+            StateHasChanged();
+        }
+    }
+
+    private void AddToLog(string message)
+    {
+        logContent += $"{DateTime.Now}: {message}\n";
+    }
+
+    // Email status class
+    private class EmailStatus
+    {
+        public string Email { get; set; }
+        public string Status { get; set; }
+    }
+}

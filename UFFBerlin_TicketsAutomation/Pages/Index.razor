@@ -1,0 +1,57 @@
+﻿@page "/"
+
+@inject Data.GoogleDriveService GoogleDriveService
+@inject Data.CSVService CSVService
+@inject IConfiguration Configuration
+
+<h3>Upload and Process CSV</h3>
+
+<InputFile OnChange="HandleFileSelected" /> <!-- Correct InputFile component -->
+
+<br />
+<button class="btn btn-primary" @onclick="ProcessCsv">Process CSV and Sort Files</button>
+
+<p>@statusMessage</p>
+
+@code {
+    private string statusMessage = "";
+    private Stream csvStream;
+
+    private string sourceFolderId;
+    private string destinationFolderId;
+
+    protected override void OnInitialized()
+    {
+        sourceFolderId = Configuration["GoogleApi:SourceFolderId"];
+        destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        // Get the file and open it as a stream
+        var file = e.File;
+        csvStream = file.OpenReadStream(); // This stream will be passed to the CSV service
+    }
+
+    private async Task ProcessCsv()
+    {
+        if (csvStream != null)
+        {
+            // Extract CSV data
+            var extractedData = await CSVService.ExtractDataFromCsvAsync(csvStream);
+
+            foreach (var (email, fileCount) in extractedData)
+            {
+                // Sort files in Google Drive
+                var userFolderId = await GoogleDriveService.CreateFolderAsync(email, destinationFolderId);
+                await GoogleDriveService.MoveFilesToFolderAsync(sourceFolderId, userFolderId, fileCount);
+            }
+
+            statusMessage = "Files sorted successfully!";
+        }
+        else
+        {
+            statusMessage = "Please upload a CSV file.";
+        }
+    }
+}
