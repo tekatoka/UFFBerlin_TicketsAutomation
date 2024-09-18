@@ -1,34 +1,37 @@
 ﻿@page "/"
-
 @inject Data.GoogleDriveService GoogleDriveService
 @inject Data.CSVService CSVService
 @inject IConfiguration Configuration
 
 <h3>Upload and Process CSV</h3>
 
-<InputFile OnChange="HandleFileSelected" /> <!-- Correct InputFile component -->
+<InputFile OnChange="HandleFileSelected" />
 
 <br />
-<button class="btn btn-primary" @onclick="ProcessCsv">Process CSV and Sort Files</button>
+<button class="btn btn-primary" @onclick="ProcessCsv" disabled="@isProcessing">Process CSV and Sort Files</button>
+
+<h4>Log</h4>
+<textarea style="width: 100%; height: 200px;" readonly>@logContent</textarea>
 
 <p>@statusMessage</p>
 
 @code {
     private string statusMessage = "";
+    private string logContent = "";
     private Stream csvStream;
+    private bool isProcessing = false;
 
-    private string sourceFolderId;
     private string destinationFolderId;
+    private string sentEmailsFolderId;
 
     protected override void OnInitialized()
     {
-        sourceFolderId = Configuration["GoogleApi:SourceFolderId"];
         destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
+        sentEmailsFolderId = Configuration["GoogleApi:SentEmailsFolderId"];
     }
 
     private void HandleFileSelected(InputFileChangeEventArgs e)
     {
-        // Get the file and open it as a stream
         var file = e.File;
         csvStream = file.OpenReadStream(); // This stream will be passed to the CSV service
     }
@@ -37,21 +40,28 @@
     {
         if (csvStream != null)
         {
-            // Extract CSV data
-            var extractedData = await CSVService.ExtractDataFromCsvAsync(csvStream);
+            isProcessing = true;
+            statusMessage = "Processing CSV...";
+            logContent = "";
 
-            foreach (var (email, fileCount) in extractedData)
+            // Log action to append to the log content
+            Action<string> logAction = (message) =>
             {
-                // Sort files in Google Drive
-                var userFolderId = await GoogleDriveService.CreateFolderAsync(email, destinationFolderId);
-                await GoogleDriveService.MoveFilesToFolderAsync(sourceFolderId, userFolderId, fileCount);
-            }
+                logContent += $"{DateTime.Now}: {message}\n";
+                StateHasChanged();
+            };
 
-            statusMessage = "Files sorted successfully!";
+            // Process CSV and pass the log action for logging
+            await CSVService.ExtractDataFromCsvAsync(csvStream, logAction);
+
+            statusMessage = "CSV processing completed.";
         }
         else
         {
             statusMessage = "Please upload a CSV file.";
         }
+
+        isProcessing = false;
+        StateHasChanged();
     }
 }

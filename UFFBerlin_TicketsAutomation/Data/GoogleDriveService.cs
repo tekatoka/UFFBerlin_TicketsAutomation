@@ -43,64 +43,55 @@ namespace UFFBerlin_TicketsAutomation.Data
             });
         }
 
-        // Method to create a folder on Google Drive
-        //public async Task<string> CreateFolderAsync(string folderName, string parentFolderId)
-        //{
-        //    var fileMetadata = new Google.Apis.Drive.v3.Data.File()
-        //    {
-        //        Name = folderName,
-        //        MimeType = "application/vnd.google-apps.folder",
-        //        Parents = new List<string> { parentFolderId }
-        //    };
-
-        //    var request = _service.Files.Create(fileMetadata);
-        //    request.Fields = "id";
-        //    var file = await request.ExecuteAsync();
-        //    return file.Id;
-        //}
-
         public async Task<string> CreateFolderAsync(string folderName, string parentFolderId)
         {
-            // Ensure the parentFolderId is correct and does not have extra query parameters
             var fileMetadata = new Google.Apis.Drive.v3.Data.File()
             {
                 Name = folderName,
                 MimeType = "application/vnd.google-apps.folder",
-                Parents = new List<string> { parentFolderId } // Cleaned up parentFolderId
+                Parents = new List<string> { parentFolderId }
             };
 
             var request = _service.Files.Create(fileMetadata);
             request.Fields = "id";
+            var file = await request.ExecuteAsync();
 
-            try
-            {
-                var file = await request.ExecuteAsync();
-                return file.Id;
-            }
-            catch (Google.GoogleApiException ex)
-            {
-                Console.WriteLine($"Error creating folder: {ex.Message}");
-                throw;
-            }
+            return file.Id;
         }
 
-        // Method to move files from source folder to destination folder on Google Drive
-        public async Task MoveFilesToFolderAsync(string sourceFolderId, string destinationFolderId, int amount)
+        public async Task MoveFilesToFolderAsync(string sourceFolderId, string destinationFolderId, int fileCount, Action<string> logAction)
         {
             var listRequest = _service.Files.List();
             listRequest.Q = $"'{sourceFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id, name, parents)";
             var files = (await listRequest.ExecuteAsync()).Files;
 
-            foreach (var file in files.Take(amount))
+            if (files.Count < fileCount)
             {
-                var previousParents = string.Join(",", file.Parents);
+                // Log error and stop processing if there aren't enough files
+                logAction($"Error: Not enough files in the source folder. Expected {fileCount}, but found {files.Count}. Stopping process.");
+                throw new InvalidOperationException($"Not enough files in the source folder. Expected {fileCount}, but found {files.Count}.");
+            }
+
+            foreach (var file in files.Take(fileCount))
+            {
+                var previousParents = file.Parents != null ? string.Join(",", file.Parents) : null;
+
+                if (previousParents == null)
+                {
+                    // Handle the case where there are no previous parents
+                    throw new InvalidOperationException($"File {file.Name} has no parent folder.");
+                }
+
                 var updateRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), file.Id);
                 updateRequest.AddParents = destinationFolderId;
                 updateRequest.RemoveParents = previousParents;
                 await updateRequest.ExecuteAsync();
+
+                logAction($"Moved file {file.Name} to folder {destinationFolderId}.");
             }
         }
+
 
         // Method to list all subfolders in a specified parent folder on Google Drive
         public async Task<List<Google.Apis.Drive.v3.Data.File>> ListFoldersAsync(string parentFolderId)
@@ -152,6 +143,16 @@ namespace UFFBerlin_TicketsAutomation.Data
             updateRequest.RemoveParents = previousParents;
 
             await updateRequest.ExecuteAsync();
+        }
+
+        public async Task<bool> FolderExistsAsync(string folderName, string parentFolderId)
+        {
+            var listRequest = _service.Files.List();
+            listRequest.Q = $"'{parentFolderId}' in parents and name = '{folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+            listRequest.Fields = "files(id, name)";
+            var result = await listRequest.ExecuteAsync();
+
+            return result.Files.Count > 0;
         }
     }
 }
