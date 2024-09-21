@@ -1,51 +1,146 @@
 ﻿@page "/settings"
 @inject Data.SettingsService SettingsService
+@inject IJSRuntime JSRuntime
+@using Syncfusion.Blazor.RichTextEditor
+
+<h3>Configure Settings</h3>
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="folders-tab" role="tab" aria-controls="folders" aria-selected="true" @onclick='() => ShowTab("folders")'>Configure Folders</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="email-tab" role="tab" aria-controls="email" aria-selected="false" @onclick='() => ShowTab("email")'>Email Settings</a>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="settingsTabsContent">
+    <!-- Configure Folders Tab -->
+    <div class="tab-pane fade show active" id="folders" role="tabpanel" aria-labelledby="folders-tab">
+        <h4>Configure Folders</h4>
+        <div class="form-group">
+            <label>Source Folder ID:</label>
+            <input type="text" class="form-control" @bind="settings.SourceFolderId" />
+        </div>
+
+        <div class="form-group">
+            <label>Destination Folder ID:</label>
+            <input type="text" class="form-control" @bind="settings.DestinationFolderId" />
+        </div>
+
+        <div class="form-group">
+            <label>Archive Folder ID:</label>
+            <input type="text" class="form-control" @bind="settings.ArchiveFolderId" />
+        </div>
+    </div>
+
+    <!-- Email Settings Tab -->
+    <div class="tab-pane fade" id="email" role="tabpanel" aria-labelledby="email-tab">
+        <h4>Email Settings</h4>
+        <div class="form-group">
+            <label>Email Subject:</label>
+            <input type="text" class="form-control" @bind="settings.EmailSubject" />
+        </div>
+
+        <div class="form-group">
+            <label>Email Body (HTML):</label>
+            <SfRichTextEditor @bind-Value="emailBody" Height="300px">
+                <RichTextEditorToolbar>
+                    <RichTextEditorToolbarItems>
+                        <RichTextEditorToolbarItem Command="Bold"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="Italic"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="Underline"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="StrikeThrough"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="CreateLink"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="Image"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="Undo"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="Redo"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="FullScreen"></RichTextEditorToolbarItem>
+                        <RichTextEditorToolbarItem Command="SourceCode"></RichTextEditorToolbarItem>
+                    </RichTextEditorToolbarItems>
+                </RichTextEditorToolbar>
+            </SfRichTextEditor>
+        </div>
+
+        <div class="form-group">
+            <button class="btn btn-secondary" @onclick="ShowPreview">Preview Email Body</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Preview -->
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Email Body Preview</h5>
+                <button type="button" class="close" @onclick="CloseModal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="border p-2" style="min-height: 150px;">
+                    @((MarkupString)emailBody)
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button class="btn btn-primary" @onclick="SaveSettings" disabled="@isSaving">Save Settings</button>
+
+<p>@statusMessage</p>
 
 @code {
     private Data.SettingsModel settings = new();
+    private string emailBody = "";  // This holds the email HTML content
+    private bool isSaving = false;
+    private string statusMessage = "";
 
     protected override void OnInitialized()
     {
-        // Load the current settings from the service
+        // Load the settings and assign the raw HTML content to the editor
         settings = SettingsService.Settings;
+        emailBody = settings.EmailTextHtml;  // Load the email body (HTML) from settings
     }
 
     private async Task SaveSettings()
     {
-        await SettingsService.UpdateSettingsAsync(settings);
+        isSaving = true;
+        statusMessage = "Saving...";
+        StateHasChanged();
 
-        // Reload the settings after saving to ensure they are applied dynamically
+        // Save the email body (HTML) content back to the settings
+        settings.EmailTextHtml = emailBody;
+
+        await SettingsService.UpdateSettingsAsync(settings);
         SettingsService.ReloadSettings();
+
+        isSaving = false;
+        statusMessage = "Settings successfully saved!";
+        StateHasChanged();
+    }
+
+    private async Task ShowPreview()
+    {
+        // Trigger the modal using JavaScript to show the preview
+        await JSRuntime.InvokeVoidAsync("eval", "$('#previewModal').modal('show');");
+    }
+
+    private async Task CloseModal()
+    {
+        // Close the modal using jQuery or Bootstrap's modal method
+        await JSRuntime.InvokeVoidAsync("eval", "$('#previewModal').modal('hide');");
+    }
+
+    // Switch between tabs without modifying the URL
+    private async Task ShowTab(string tabId)
+    {
+        await JSRuntime.InvokeVoidAsync("eval", $"$('.nav-link').removeClass('active');$('#{tabId}-tab').addClass('active');$('.tab-pane').removeClass('show active');$('#{tabId}').addClass('show active');");
     }
 }
-
-<h3>Configure Settings</h3>
-
-<div class="form-group">
-    <label>Source Folder ID:</label>
-    <input type="text" class="form-control" @bind="settings.SourceFolderId" />
-</div>
-
-<div class="form-group">
-    <label>Destination Folder ID:</label>
-    <input type="text" class="form-control" @bind="settings.DestinationFolderId" />
-</div>
-
-<div class="form-group">
-    <label>Archive Folder ID:</label>
-    <input type="text" class="form-control" @bind="settings.ArchiveFolderId" />
-</div>
-
-<div class="form-group">
-    <label>Email Subject:</label>
-    <input type="text" class="form-control" @bind="settings.EmailSubject" />
-</div>
-
-<div class="form-group">
-    <label>Email Body (HTML):</label>
-    <textarea class="form-control" @bind="settings.EmailTextHtml"></textarea>
-</div>
-
-<button class="btn btn-primary" @onclick="SaveSettings">Save Settings</button>
-
-<p>Settings are saved successfully once you click "Save Settings".</p>

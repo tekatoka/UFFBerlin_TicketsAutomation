@@ -2,13 +2,17 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using UFFBerlin_TicketsAutomation.Data; // Your custom services like EmailService and GoogleDriveService
 using Google.Apis.Drive.v3; // For Google Drive API
-using Google.Apis.Gmail.v1; // For Gmail API
+using Google.Apis.Gmail.v1;
+using Syncfusion.Blazor;
+
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCd0x0TXxbf1x0ZFZMZF9bRnNPIiBoS35RckVqW35fdXBWRGVcU0Bz");
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddSyncfusionBlazor();
 
 // Add your custom services
 builder.Services.AddSingleton<EmailService>();

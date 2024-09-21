@@ -12,6 +12,10 @@ a, .btn-link {
     color: #0071c1;
 }
 
+.btn {
+    margin: 10px 0 0;
+}
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
@@ -32,6 +36,10 @@ a, .btn-link {
 
 .validation-message {
     color: red;
+}
+
+h4 {
+    margin-top: 10px!important;
 }
 
 #blazor-error-ui {
@@ -62,3 +70,13 @@ a, .btn-link {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+
+.modal-lg {
+    max-width: 75%; /* Set the width to 75% of the screen */
+}
+
+@media (min-width: 768px) {
+    .modal-lg {
+        max-width: 50%; /* Optional: You can set it to 50% for smaller screens */
+    }
+}

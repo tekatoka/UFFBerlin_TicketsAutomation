@@ -13,6 +13,8 @@
     <PackageReference Include="Google.Apis.Gmail.v1" Version="1.68.0.3427" />
     <PackageReference Include="MailKit" Version="4.7.1.1" />
     <PackageReference Include="MimeKit" Version="4.7.1" />
+    <PackageReference Include="Syncfusion.Blazor" Version="27.1.48" />
+    <PackageReference Include="Syncfusion.Blazor.Themes" Version="27.1.48" />
   </ItemGroup>
 
   <ItemGroup>
