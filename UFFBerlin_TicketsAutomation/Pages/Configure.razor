@@ -1,4 +1,5 @@
 ﻿@page "/configure"
+@inject Data.SettingsService SettingsService
 @inject IConfiguration Configuration
 
 <h3>Configuration</h3>
@@ -24,18 +25,18 @@
 
     protected override void OnInitialized()
     {
-        sourceFolderId = Configuration["GoogleApi:SourceFolderId"];
-        destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
-        emailBody = Configuration["GoogleApi:EmailBody"];
+        sourceFolderId = SettingsService.Settings.SourceFolderId;
+        destinationFolderId = SettingsService.Settings.DestinationFolderId;
+        emailBody = SettingsService.Settings.EmailTextHtml;
     }
 
     private void SaveConfiguration()
     {
         // Logic to save configuration (e.g., to a file or database)
         // For demonstration, we'll just update the Configuration in memory
-        Configuration["GoogleApi:SourceFolderId"] = sourceFolderId;
-        Configuration["GoogleApi:DestinationFolderId"] = destinationFolderId;
-        Configuration["GoogleApi:EmailBody"] = emailBody;
+        SettingsService.Settings.SourceFolderId = sourceFolderId;
+        SettingsService.Settings.DestinationFolderId = destinationFolderId;
+        SettingsService.Settings.EmailTextHtml = emailBody;
 
         statusMessage = "Configuration saved!";
     }

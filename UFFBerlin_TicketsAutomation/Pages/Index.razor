@@ -1,9 +1,14 @@
 ﻿@page "/"
+@inject IJSRuntime JSRuntime
 @inject Data.GoogleDriveService GoogleDriveService
 @inject Data.CSVService CSVService
+@inject Data.SettingsService SettingsService
 @inject IConfiguration Configuration
 
 <h3>Upload and Process CSV</h3>
+
+<p><strong>Source Folder ID:</strong> <a href="https://drive.google.com/drive/folders/@sourceFolderId" target="_blank">@sourceFolderId</a></p>
+<p><strong>Destination Folder ID:</strong> <a href="https://drive.google.com/drive/folders/@destinationFolderId" target="_blank">@destinationFolderId</a></p>
 
 <InputFile OnChange="HandleFileSelected" />
 
@@ -15,19 +20,27 @@
 
 <p>@statusMessage</p>
 
+<button class="btn btn-secondary" @onclick="DownloadLogFile" disabled="@string.IsNullOrEmpty(logContent)">Download Log</button>
+
 @code {
     private string statusMessage = "";
     private string logContent = "";
     private Stream csvStream;
     private bool isProcessing = false;
 
+    private string sourceFolderId;
     private string destinationFolderId;
     private string sentEmailsFolderId;
 
     protected override void OnInitialized()
     {
-        destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
-        sentEmailsFolderId = Configuration["GoogleApi:SentEmailsFolderId"];
+        // Reload the latest settings to ensure changes are recognized without restarting
+        SettingsService.ReloadSettings();
+
+        // Bind the current folder IDs from the settings service
+        sourceFolderId = SettingsService.Settings.SourceFolderId;
+        destinationFolderId = SettingsService.Settings.DestinationFolderId;
+        sentEmailsFolderId = SettingsService.Settings.ArchiveFolderId;
     }
 
     private void HandleFileSelected(InputFileChangeEventArgs e)
@@ -44,17 +57,24 @@
             statusMessage = "Processing CSV...";
             logContent = "";
 
-            // Log action to append to the log content
-            Action<string> logAction = (message) =>
+            try
             {
-                logContent += $"{DateTime.Now}: {message}\n";
-                StateHasChanged();
-            };
+                // Log action to append to the log content
+                Action<string> logAction = (message) =>
+                {
+                    logContent += $"{DateTime.Now}: {message}\n";
+                    StateHasChanged();
+                };
 
-            // Process CSV and pass the log action for logging
-            await CSVService.ExtractDataFromCsvAsync(csvStream, logAction);
+                // Process CSV and pass the log action for logging
+                await CSVService.ExtractDataFromCsvAsync(csvStream, logAction);
 
-            statusMessage = "CSV processing completed.";
+                statusMessage = "CSV processing completed.";
+            }
+            catch (Exception ex)
+            {
+                statusMessage = $"Error: {ex.Message}";
+            }
         }
         else
         {
@@ -63,5 +83,14 @@
 
         isProcessing = false;
         StateHasChanged();
+    }
+
+    private async Task DownloadLogFile()
+    {
+        var currentDate = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var fileName = $"log_uffb_processCSV_{currentDate}.txt";
+
+        // Trigger the download via JavaScript interop
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, logContent);
     }
 }

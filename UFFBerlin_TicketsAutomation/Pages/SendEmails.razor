@@ -2,8 +2,13 @@
 @inject Data.GoogleDriveService GoogleDriveService
 @inject Data.EmailService EmailService
 @inject IConfiguration Configuration
+@inject Data.SettingsService SettingsService
+@inject IJSRuntime JSRuntime
 
 <h3>Send Emails</h3>
+
+<p><strong>Prepared emails folder:</strong> <a href="https://drive.google.com/drive/folders/@destinationFolderId" target="_blank">@destinationFolderId</a></p>
+<p><strong>Sent emails folder:</strong> <a href="https://drive.google.com/drive/folders/@sentEmailsFolderId" target="_blank">@sentEmailsFolderId</a></p>
 
 <button class="btn btn-primary" @onclick="SendEmailsToUsers" disabled="@isSending">Send Emails to Users</button>
 
@@ -21,6 +26,8 @@
 
 <p>@statusMessage</p>
 
+<button class="btn btn-secondary" @onclick="DownloadLogFile" disabled="@string.IsNullOrEmpty(logContent)">Download Log</button>
+
 @code {
     private string statusMessage = "";
     private bool isSending = false;
@@ -34,10 +41,12 @@
 
     protected override void OnInitialized()
     {
-        destinationFolderId = Configuration["GoogleApi:DestinationFolderId"];
-        sentEmailsFolderId = Configuration["GoogleApi:SentEmailsFolderId"];
-        emailSubject = Configuration["GoogleApi:EmailSubject"];
-        emailBody = Configuration["GoogleApi:EmailBody"];
+        SettingsService.ReloadSettings();
+
+        destinationFolderId = SettingsService.Settings.DestinationFolderId;
+        sentEmailsFolderId = SettingsService.Settings.ArchiveFolderId;
+        emailSubject = SettingsService.Settings.EmailSubject;
+        emailBody = SettingsService.Settings.EmailTextHtml;
     }
 
     private async Task SendEmailsToUsers()
@@ -58,6 +67,14 @@
             {
                 var emailStatus = emailStatuses.First(e => e.Email == folder.Name);
                 var attachmentPaths = await GoogleDriveService.DownloadFilesFromFolderAsync(folder.Id);
+
+                // Check if the folder is empty
+                if (!attachmentPaths.Any())
+                {
+                    emailStatus.Status = "Skipped (Empty Folder)";
+                    AddToLog($"Folder for {folder.Name} is empty. Skipping email.");
+                    continue; // Skip sending the email and don't move the folder
+                }
 
                 try
                 {
@@ -82,6 +99,8 @@
                     // Mark email as "Failed"
                     emailStatus.Status = "Failed";
                     AddToLog($"Failed to send email to {folder.Name}: {ex.Message}");
+                    statusMessage = $"Error: Failed to send email to {folder.Name}. Stopping process.";
+                    throw new InvalidOperationException($"Error sending email to {folder.Name}: {ex.Message}");
                 }
                 finally
                 {
@@ -116,6 +135,15 @@
     private void AddToLog(string message)
     {
         logContent += $"{DateTime.Now}: {message}\n";
+    }
+
+    private async Task DownloadLogFile()
+    {
+        var currentDate = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var fileName = $"log_uffb_sendEmails_{currentDate}.txt";
+
+        // Trigger the download via JavaScript interop
+        await JSRuntime.InvokeVoidAsync("downloadFile", fileName, logContent);
     }
 
     // Email status class

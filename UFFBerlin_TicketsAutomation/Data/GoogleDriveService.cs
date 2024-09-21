@@ -145,14 +145,44 @@ namespace UFFBerlin_TicketsAutomation.Data
             await updateRequest.ExecuteAsync();
         }
 
-        public async Task<bool> FolderExistsAsync(string folderName, string parentFolderId)
+        public async Task<bool> FolderExistsAsync(string folderId, string parentFolderId = null)
         {
-            var listRequest = _service.Files.List();
-            listRequest.Q = $"'{parentFolderId}' in parents and name = '{folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
-            listRequest.Fields = "files(id, name)";
-            var result = await listRequest.ExecuteAsync();
+            try
+            {
+                if (parentFolderId == null)
+                {
+                    // If no parent folder ID is provided, assume we are checking by folderId directly
+                    var request = _service.Files.Get(folderId);
+                    request.Fields = "id";
 
-            return result.Files.Count > 0;
+                    // Try to execute the request to check if the folder exists by its ID
+                    var file = await request.ExecuteAsync();
+
+                    return file != null;
+                }
+                else
+                {
+                    // If parent folder ID is provided, we are checking by folder name in a specific parent folder
+                    var listRequest = _service.Files.List();
+                    listRequest.Q = $"'{parentFolderId}' in parents and name = '{folderId}' and trashed = false";
+                    listRequest.Fields = "files(id, name)";
+
+                    var result = await listRequest.ExecuteAsync();
+                    return result.Files.Count > 0;
+                }
+            }
+            catch (Google.GoogleApiException ex)
+            {
+                // Handle the folder not found case
+                if (ex.Error.Code == 404)
+                {
+                    return false; // Folder not found
+                }
+                else
+                {
+                    throw; // Re-throw other Google API exceptions
+                }
+            }
         }
     }
 }

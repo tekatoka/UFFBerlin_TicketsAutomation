@@ -14,6 +14,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<GoogleDriveService>();
 builder.Services.AddSingleton<CSVService>();
+builder.Services.AddSingleton<SettingsService>();
 
 // Load configuration from appsettings.json
 builder.Configuration.AddJsonFile("wwwroot/appsettings.json", optional: false, reloadOnChange: true);
