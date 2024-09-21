@@ -52,8 +52,8 @@ namespace UFFBerlin_TicketsAutomation.Data
         public string SourceFolderId { get; set; } = string.Empty;
         public string DestinationFolderId { get; set; } = string.Empty;
         public string ArchiveFolderId { get; set; } = string.Empty;
-        public string EmailSubject { get; set; } = "Default Subject";
-        public string EmailTextHtml { get; set; } = "<p>Default Email Body</p>";
+        public string EmailSubject { get; set; } = string.Empty;
+        public string EmailTextHtml { get; set; } = string.Empty;
     }
 
 }

@@ -66,14 +66,16 @@
             foreach (var folder in userFolders)
             {
                 var emailStatus = emailStatuses.First(e => e.Email == folder.Name);
+
+                // Check if the folder is empty before proceeding
                 var attachmentPaths = await GoogleDriveService.DownloadFilesFromFolderAsync(folder.Id);
 
-                // Check if the folder is empty
-                if (!attachmentPaths.Any())
+                if (!attachmentPaths.Any()) // Folder is empty
                 {
-                    emailStatus.Status = "Skipped (Empty Folder)";
-                    AddToLog($"Folder for {folder.Name} is empty. Skipping email.");
-                    continue; // Skip sending the email and don't move the folder
+                    emailStatus.Status = "Skipped - Empty Folder";
+                    AddToLog($"Folder for {folder.Name} is empty. Skipping sending email.");
+                    StateHasChanged();
+                    continue; // Skip the rest of the loop for this folder
                 }
 
                 try
@@ -99,8 +101,6 @@
                     // Mark email as "Failed"
                     emailStatus.Status = "Failed";
                     AddToLog($"Failed to send email to {folder.Name}: {ex.Message}");
-                    statusMessage = $"Error: Failed to send email to {folder.Name}. Stopping process.";
-                    throw new InvalidOperationException($"Error sending email to {folder.Name}: {ex.Message}");
                 }
                 finally
                 {

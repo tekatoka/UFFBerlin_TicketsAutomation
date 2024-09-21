@@ -1,12 +1,8 @@
 using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
 using Google.Apis.Gmail.v1;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using MimeKit;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace UFFBerlin_TicketsAutomation.Data
 {
@@ -16,50 +12,50 @@ namespace UFFBerlin_TicketsAutomation.Data
 
         public EmailService()
         {
-            _service = GetGmailService();
-        }
-
-        private GmailService GetGmailService()
-        {
+            // Initialize the Gmail API service with OAuth2 authentication
             UserCredential credential;
 
             using (var stream = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
             {
-                // Authorize for both Gmail and Google Drive scopes
                 credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
                     GoogleClientSecrets.Load(stream).Secrets,
-                    new[] { GmailService.Scope.GmailSend, DriveService.Scope.Drive },
+                    new[] { GmailService.Scope.GmailSend },
                     "user",
                     CancellationToken.None,
-                    new FileDataStore("token.json", true)).Result;
+                    new FileDataStore("GmailTokenStore", true)).Result;
             }
 
             // Create the Gmail service
-            return new GmailService(new BaseClientService.Initializer()
+            _service = new GmailService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = "UFFBerlin_TicketsAutomation",
+                ApplicationName = "Your App Name",
             });
         }
 
-        public async Task SendEmailAsync(string recipientEmail, string subject, string htmlBody, List<string> attachmentPaths)
+        public async Task SendEmailAsync(string toEmail, string subject, string body, List<string> attachmentPaths)
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Your Name", "your-email@gmail.com"));
-            message.To.Add(MailboxAddress.Parse(recipientEmail));
-            message.Subject = subject;
+            // Create the email message
+            var emailMessage = new MimeMessage();
 
-            var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
+            //TODO!!! Change for productive use with UFFB! Ukrainian Film Festival Berlin / info@uffberlin.de
+            emailMessage.From.Add(new MailboxAddress("Dana Bondarenko", "tekatoka@gmail.com")); // sender's name and email
+            emailMessage.To.Add(new MailboxAddress("", toEmail)); // recipient's email
+            emailMessage.Subject = subject;
 
+            var bodyBuilder = new BodyBuilder { HtmlBody = body };
+
+            // Add attachments
             foreach (var path in attachmentPaths)
             {
                 bodyBuilder.Attachments.Add(path);
             }
 
-            message.Body = bodyBuilder.ToMessageBody();
+            emailMessage.Body = bodyBuilder.ToMessageBody();
 
+            // Prepare the email to be sent via the Gmail API
             using var stream = new MemoryStream();
-            await message.WriteToAsync(stream);
+            await emailMessage.WriteToAsync(stream);
             var rawMessage = Convert.ToBase64String(stream.ToArray())
                 .Replace('+', '-')
                 .Replace('/', '_')
@@ -70,6 +66,7 @@ namespace UFFBerlin_TicketsAutomation.Data
                 Raw = rawMessage
             };
 
+            // Send the email
             var request = _service.Users.Messages.Send(gmailMessage, "me");
             await request.ExecuteAsync();
         }
