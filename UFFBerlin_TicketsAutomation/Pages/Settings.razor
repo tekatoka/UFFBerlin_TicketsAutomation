@@ -1,7 +1,10 @@
 ﻿@page "/settings"
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject Data.SettingsService SettingsService
 @inject IJSRuntime JSRuntime
 @inject Data.EmailService EmailService
+@inject NavigationManager Navigation
 
 @using Syncfusion.Blazor.RichTextEditor
 
@@ -115,8 +118,16 @@
     private bool isSaving = false;
     private string statusMessage = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/sign-in");
+        }
+       
         // Load the settings and assign the raw HTML content to the editor
         settings = SettingsService.Settings;
         emailBody = settings.EmailTextHtml;  // Load the email body (HTML) from settings

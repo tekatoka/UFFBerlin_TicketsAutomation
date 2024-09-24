@@ -7,44 +7,38 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using UFFBerlin_TicketsAutomation.Data.Authentication;
 
 namespace UFFBerlin_TicketsAutomation.Data
 {
     public class GoogleDriveService
     {
-        private readonly DriveService _service;
+        private readonly GoogleAuthorizationService _googleAuthService;
+        private DriveService? _service;
 
-        public GoogleDriveService()
+        public GoogleDriveService(GoogleAuthorizationService googleAuthService)
         {
-            _service = GetDriveService();
+            _googleAuthService = googleAuthService;
         }
 
-        private DriveService GetDriveService()
+        private async Task InitializeDriveServiceAsync()
         {
-            UserCredential credential;
-
-            // Using GoogleWebAuthorizationBroker for OAuth 2.0 credentials
-            using (var stream = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
+            if (_service == null)
             {
-                // Authorize the user via Google Web Authorization Broker (OAuth 2.0 flow)
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    new[] { DriveService.Scope.Drive, GmailService.Scope.GmailSend }, // Adjust scopes as needed
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore("token.json", true)).Result;
+                var credential = await _googleAuthService.GetGoogleCredentialAsync();
+
+                _service = new DriveService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "UFFBerlin_TicketsAutomation"
+                });
             }
-
-            // Create the Google Drive service
-            return new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = "UFFBerlin_TicketsAutomation",
-            });
         }
 
         public async Task<string> CreateFolderAsync(string folderName, string parentFolderId)
         {
+            await InitializeDriveServiceAsync();
+
             var fileMetadata = new Google.Apis.Drive.v3.Data.File()
             {
                 Name = folderName,
@@ -61,6 +55,8 @@ namespace UFFBerlin_TicketsAutomation.Data
 
         public async Task MoveFilesToFolderAsync(string sourceFolderId, string destinationFolderId, int fileCount, Action<string> logAction)
         {
+            await InitializeDriveServiceAsync();
+
             var listRequest = _service.Files.List();
             listRequest.Q = $"'{sourceFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id, name, parents)";
@@ -96,6 +92,8 @@ namespace UFFBerlin_TicketsAutomation.Data
         // Method to list all subfolders in a specified parent folder on Google Drive
         public async Task<List<Google.Apis.Drive.v3.Data.File>> ListFoldersAsync(string parentFolderId)
         {
+            await InitializeDriveServiceAsync();
+
             var listRequest = _service.Files.List();
             listRequest.Q = $"'{parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
             listRequest.Fields = "files(id, name)";
@@ -108,6 +106,9 @@ namespace UFFBerlin_TicketsAutomation.Data
         // Method to download all files in a specific folder on Google Drive
         public async Task<List<string>> DownloadFilesFromFolderAsync(string folderId)
         {
+
+            await InitializeDriveServiceAsync();
+
             var listRequest = _service.Files.List();
             listRequest.Q = $"'{folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false";
             listRequest.Fields = "files(id, name)";
@@ -130,6 +131,8 @@ namespace UFFBerlin_TicketsAutomation.Data
 
         public async Task MoveFolderAsync(string folderId, string destinationParentFolderId)
         {
+            await InitializeDriveServiceAsync();
+
             // Get the current parent of the folder (this is required to remove the folder from the current parent)
             var getRequest = _service.Files.Get(folderId);
             getRequest.Fields = "parents";
@@ -147,6 +150,8 @@ namespace UFFBerlin_TicketsAutomation.Data
 
         public async Task<bool> FolderExistsAsync(string folderId, string parentFolderId = null)
         {
+            await InitializeDriveServiceAsync();
+
             try
             {
                 if (parentFolderId == null)

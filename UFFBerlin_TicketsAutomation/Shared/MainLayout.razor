@@ -1,4 +1,8 @@
-﻿@inherits LayoutComponentBase
+﻿@using UFFBerlin_TicketsAutomation.Data.Authentication
+@inherits LayoutComponentBase
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject GoogleAuthorizationService GoogleAuthorizationService
+@inject NavigationManager Navigation
 
 <PageTitle>UFFBerlin_TicketsAutomation</PageTitle>
 
@@ -9,7 +13,10 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            @if (isSignedIn)
+            {
+                <button class="btn btn-primary" @onclick="SignOut">Sign Out</button>
+            }
         </div>
 
         <article class="content px-4">
@@ -17,3 +24,23 @@
         </article>
     </main>
 </div>
+
+@code {
+
+    private bool isSignedIn;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if the user is authenticated
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        isSignedIn = user.Identity != null && user.Identity.IsAuthenticated;
+    }
+
+    private void SignOut()
+    {
+        GoogleAuthorizationService.SignOutUser();
+        Navigation.NavigateTo("/sign-in"); // Redirect after sign-out
+    }
+}

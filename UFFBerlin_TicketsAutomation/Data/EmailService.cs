@@ -1,46 +1,74 @@
-using Google.Apis.Auth.OAuth2;
 using Google.Apis.Gmail.v1;
+using Google.Apis.PeopleService.v1;
 using Google.Apis.Services;
-using Google.Apis.Util.Store;
 using MimeKit;
+using UFFBerlin_TicketsAutomation.Data.Authentication;
 
 namespace UFFBerlin_TicketsAutomation.Data
 {
     public class EmailService
     {
-        private readonly GmailService _service;
+        private readonly GoogleAuthorizationService _googleAuthService;
+        private GmailService _service;
+        private string _cachedSenderEmail;
+        private string _cachedSenderName;
 
-        public EmailService()
+        public EmailService(GoogleAuthorizationService googleAuthService)
         {
-            // Initialize the Gmail API service with OAuth2 authentication
-            UserCredential credential;
-
-            using (var stream = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
-            {
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    new[] { GmailService.Scope.GmailSend },
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore("GmailTokenStore", true)).Result;
-            }
-
-            // Create the Gmail service
-            _service = new GmailService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = "Your App Name",
-            });
+            _googleAuthService = googleAuthService;
         }
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body, List<string> attachmentPaths)
+        private async Task<GmailService> InitializeGmailServiceAsync()
         {
-            // Create the email message
-            var emailMessage = new MimeMessage();
+            if (_service == null)
+            {
+                var credential = await _googleAuthService.GetGoogleCredentialAsync();
 
-            //TODO!!! Change for productive use with UFFB! Ukrainian Film Festival Berlin / info@uffberlin.de
-            emailMessage.From.Add(new MailboxAddress("Dana Bondarenko", "tekatoka@gmail.com")); // sender's name and email
-            emailMessage.To.Add(new MailboxAddress("", toEmail)); // recipient's email
+                var grantedScopes = credential.Token.Scope;
+
+                _service = new GmailService(new BaseClientService.Initializer()
+                {
+                    HttpClientInitializer = credential,
+                    ApplicationName = "UFFBerlin_TicketsAutomation"
+                });
+
+                // Fetch user profile once during initialization
+                await FetchUserProfileAsync();
+            }
+            return _service;
+        }
+
+        private async Task FetchUserProfileAsync()
+        {
+            // Get user's email from Gmail API
+            var request = _service.Users.GetProfile("me");
+            var profile = await request.ExecuteAsync();
+            _cachedSenderEmail = profile.EmailAddress;
+
+            // Fetch user's name using the People API
+            var peopleService = new PeopleServiceService(new BaseClientService.Initializer
+            {
+                HttpClientInitializer = await _googleAuthService.GetGoogleCredentialAsync(),
+                ApplicationName = "UFFBerlin_TicketsAutomation"
+            });
+
+            // Request the authenticated user's profile information
+            var personRequest = peopleService.People.Get("people/me");
+            personRequest.PersonFields = "names";
+            var person = await personRequest.ExecuteAsync();
+
+            // Retrieve the full name if available
+            _cachedSenderName = person.Names?.FirstOrDefault()?.DisplayName ?? "Unknown";
+        }
+
+        public async Task SendEmailAsync(string recepientEmail, string subject, string body, List<string> attachmentPaths)
+        {
+            // Initialize Gmail service before sending an email
+            await InitializeGmailServiceAsync();
+
+            var emailMessage = new MimeMessage();
+            emailMessage.From.Add(new MailboxAddress(_cachedSenderName, _cachedSenderEmail));
+            emailMessage.To.Add(new MailboxAddress("", recepientEmail));
             emailMessage.Subject = subject;
 
             var bodyBuilder = new BodyBuilder { HtmlBody = body };

@@ -11,6 +11,7 @@
     <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3533" />
     <PackageReference Include="Google.Apis.Gmail.v1" Version="1.68.0.3427" />
+    <PackageReference Include="Google.Apis.PeopleService.v1" Version="1.68.0.3359" />
     <PackageReference Include="MailKit" Version="4.7.1.1" />
     <PackageReference Include="MimeKit" Version="4.7.1" />
     <PackageReference Include="Syncfusion.Blazor" Version="27.1.48" />
@@ -24,6 +25,10 @@
     <Content Update="wwwroot\appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="GmailTokenStore\" />
   </ItemGroup>
 
 </Project>
