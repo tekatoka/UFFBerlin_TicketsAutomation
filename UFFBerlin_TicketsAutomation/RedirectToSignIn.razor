@@ -1,0 +1,16 @@
+﻿@inject NavigationManager Navigation
+
+@code {
+    private bool isRedirecting = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isRedirecting)
+        {
+            isRedirecting = true;
+            // Wait for the UI to render, then redirect to the sign-in page
+            await Task.Yield();
+            Navigation.NavigateTo("/sign-in", true);
+        }
+    }
+}

@@ -1,10 +1,11 @@
-﻿@using UFFBerlin_TicketsAutomation.Data.Authentication
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using UFFBerlin_TicketsAutomation.Data.Authentication
 @inherits LayoutComponentBase
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject GoogleAuthorizationService GoogleAuthorizationService
 @inject NavigationManager Navigation
 
-<PageTitle>UFFBerlin_TicketsAutomation</PageTitle>
+<PageTitle>MyApp</PageTitle>
 
 <div class="page">
     <div class="sidebar">
@@ -31,16 +32,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Check if the user is authenticated
+        await CheckAuthentication();
+    }
+
+    private async Task CheckAuthentication()
+    {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
         isSignedIn = user.Identity != null && user.Identity.IsAuthenticated;
+        StateHasChanged();  // Re-render to show SignOut button
     }
 
     private void SignOut()
     {
         GoogleAuthorizationService.SignOutUser();
-        Navigation.NavigateTo("/sign-in"); // Redirect after sign-out
+        Navigation.NavigateTo("/sign-in", true);  // Force a reload of the sign-in page after logout
     }
 }
