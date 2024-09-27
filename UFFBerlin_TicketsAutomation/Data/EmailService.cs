@@ -13,6 +13,9 @@ namespace UFFBerlin_TicketsAutomation.Data
         private string _cachedSenderEmail;
         private string _cachedSenderName;
 
+        public string SenderEmail => _cachedSenderEmail;
+        public string SenderName => _cachedSenderName;
+
         public EmailService(GoogleAuthorizationService googleAuthService)
         {
             _googleAuthService = googleAuthService;
@@ -33,13 +36,15 @@ namespace UFFBerlin_TicketsAutomation.Data
                 });
 
                 // Fetch user profile once during initialization
-                await FetchUserProfileAsync();
+                //await FetchUserProfileAsync();
             }
             return _service;
         }
 
-        private async Task FetchUserProfileAsync()
+        public async Task FetchUserProfileAsync()
         {
+            await InitializeGmailServiceAsync();
+
             // Get user's email from Gmail API
             var request = _service.Users.GetProfile("me");
             var profile = await request.ExecuteAsync();

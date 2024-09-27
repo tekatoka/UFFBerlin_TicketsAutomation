@@ -1,8 +1,12 @@
 ﻿@page "/sign-in"
+@layout MinimalLayout
+
 @using UFFBerlin_TicketsAutomation.Data.Authentication
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject GoogleAuthorizationService GoogleAuthorizationService
+@inject IHttpContextAccessor HttpContextAccessor
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
 <h3>Sign In</h3>
 
@@ -10,26 +14,36 @@
 {
     <button class="btn btn-primary" @onclick="HandleSignIn">Sign In with Google</button>
 }
+else
+{
+    <p>You are already signed in. Redirecting...</p>
+}
 
 @code {
     private bool isSignedIn;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        isSignedIn = user.Identity != null && user.Identity.IsAuthenticated;
-
-        if (isSignedIn)
+        if (firstRender)
         {
-            Navigation.NavigateTo("/");
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            var userToken = HttpContextAccessor.HttpContext?.Session.GetString("user_access_token");
+
+            isSignedIn = user.Identity != null && user.Identity.IsAuthenticated && !string.IsNullOrEmpty(userToken);
+
+            if (isSignedIn)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
         }
     }
 
     private async Task HandleSignIn()
     {
         await GoogleAuthorizationService.GetGoogleCredentialAsync();
-        Navigation.NavigateTo("/"); // Redirect after sign-in
+        Navigation.NavigateTo("/");  // Redirect after sign-in
     }
 }

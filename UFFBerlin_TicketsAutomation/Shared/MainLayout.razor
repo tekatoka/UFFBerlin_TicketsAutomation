@@ -1,14 +1,18 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using UFFBerlin_TicketsAutomation.Data
 @using UFFBerlin_TicketsAutomation.Data.Authentication
-@inherits LayoutComponentBase
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject GoogleAuthorizationService GoogleAuthorizationService
+@inject IHttpContextAccessor HttpContextAccessor
 @inject NavigationManager Navigation
+@inject EmailService EmailService
 
-<PageTitle>MyApp</PageTitle>
+<PageTitle>UFFB Ticket Automation</PageTitle>
 
 <div class="page">
     <div class="sidebar">
+        <Header />
         <NavMenu />
     </div>
 
@@ -16,7 +20,10 @@
         <div class="top-row px-4">
             @if (isSignedIn)
             {
-                <button class="btn btn-primary" @onclick="SignOut">Sign Out</button>
+                <div>
+                    <span>You are signed in as: @EmailService.SenderName<br />(@EmailService.SenderEmail)</span>
+                    <button class="btn btn-primary" @onclick="SignOut">Sign Out</button>
+                </div>
             }
         </div>
 
@@ -30,9 +37,11 @@
 
     private bool isSignedIn;
 
-    protected override async Task OnInitializedAsync()
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await CheckAuthentication();
+        if (firstRender)
+        { await CheckAuthentication(); }
     }
 
     private async Task CheckAuthentication()
@@ -40,13 +49,25 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        isSignedIn = user.Identity != null && user.Identity.IsAuthenticated;
-        StateHasChanged();  // Re-render to show SignOut button
+        var userToken = HttpContextAccessor.HttpContext?.Session.GetString("user_access_token");
+
+        isSignedIn = user.Identity != null && user.Identity.IsAuthenticated && !string.IsNullOrEmpty(userToken);
+
+        if (isSignedIn)
+        {
+            if (string.IsNullOrEmpty(EmailService.SenderEmail) || string.IsNullOrEmpty(EmailService.SenderName))
+            {
+                await EmailService.FetchUserProfileAsync();
+            }
+        }
+
+        StateHasChanged();  // Re-render to show SignOut button and user info
     }
 
-    private void SignOut()
+    private async Task SignOut()
     {
-        GoogleAuthorizationService.SignOutUser();
+        await GoogleAuthorizationService.SignOutUser();
+        isSignedIn = false;
         Navigation.NavigateTo("/sign-in", true);  // Force a reload of the sign-in page after logout
     }
 }
