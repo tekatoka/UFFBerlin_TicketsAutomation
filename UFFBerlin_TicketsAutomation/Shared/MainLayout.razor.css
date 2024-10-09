@@ -31,6 +31,24 @@ main {
         text-overflow: ellipsis;
     }
 
+.custom-align {
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.custom-span {
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.custom-button {
+    display: flex;
+    align-items: center;
+    height: auto;
+}
+
 @media (max-width: 640.98px) {
     .top-row:not(.auth) {
         display: none;

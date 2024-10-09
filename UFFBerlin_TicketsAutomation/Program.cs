@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Components.Authorization;
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1NDaF5cWWtCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdnWXZcdHVQRmlYUU13XkE=");
 
 var builder = WebApplication.CreateBuilder(args);
+//builder.WebHost.UseUrls("http://*:5000");
+builder.WebHost.UseUrls("http://*:5000;https://*:5001");
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -53,8 +55,17 @@ app.UseRouting();
 app.UseSession(); // Add session middleware here
 app.UseAuthorization();
 
-// Map Blazor hubs and fallback to host page
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+//app.UseCors(policy => policy
+//    .AllowAnyOrigin()
+//    .AllowAnyMethod()
+//    .AllowAnyHeader());
+
+// Map controller routes to handle API requests
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers(); // Enable attribute-based routing for controllers
+    endpoints.MapBlazorHub();
+    endpoints.MapFallbackToPage("/_Host");
+});
 
 app.Run();

@@ -43,7 +43,8 @@ else
 
     private async Task HandleSignIn()
     {
-        await GoogleAuthorizationService.GetGoogleCredentialAsync();
-        Navigation.NavigateTo("/");  // Redirect after sign-in
+        //await GoogleAuthorizationService.GetGoogleCredentialAsync();
+        Navigation.NavigateTo("api/auth/signin", forceLoad: true);
+        //Navigation.NavigateTo("/");  // Redirect after sign-in
     }
 }

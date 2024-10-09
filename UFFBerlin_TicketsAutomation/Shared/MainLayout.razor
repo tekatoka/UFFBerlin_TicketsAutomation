@@ -20,9 +20,9 @@
         <div class="top-row px-4">
             @if (isSignedIn)
             {
-                <div>
-                    <span>You are signed in as: @EmailService.SenderName<br />(@EmailService.SenderEmail)</span>
-                    <button class="btn btn-primary" @onclick="SignOut">Sign Out</button>
+                <div class="custom-align">
+                    <span class="custom-span">You are signed in as: @EmailService.SenderName (@EmailService.SenderEmail)</span>
+                    <button class="btn btn-primary custom-button" @onclick="SignOut">Sign Out</button>
                 </div>
             }
         </div>
