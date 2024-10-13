@@ -53,10 +53,8 @@ namespace UFFBerlin_TicketsAutomation.Data
             return file.Id;
         }
 
-        public async Task MoveFilesToFolderAsync(string sourceFolderId, string destinationFolderId, int fileCount, Action<string> logAction)
+        public async Task MoveFilesToFolderAsync(string sourceFolderId, string destinationFolderId, int fileCount, Action<string> logAction, string email)
         {
-            await InitializeDriveServiceAsync();
-
             var listRequest = _service.Files.List();
             listRequest.Q = $"'{sourceFolderId}' in parents and trashed = false";
             listRequest.Fields = "files(id, name, parents)";
@@ -64,7 +62,6 @@ namespace UFFBerlin_TicketsAutomation.Data
 
             if (files.Count < fileCount)
             {
-                // Log error and stop processing if there aren't enough files
                 logAction($"Error: Not enough files in the source folder. Expected {fileCount}, but found {files.Count}. Stopping process.");
                 throw new InvalidOperationException($"Not enough files in the source folder. Expected {fileCount}, but found {files.Count}.");
             }
@@ -73,21 +70,42 @@ namespace UFFBerlin_TicketsAutomation.Data
             {
                 var previousParents = file.Parents != null ? string.Join(",", file.Parents) : null;
 
-                if (previousParents == null)
+                if (string.IsNullOrEmpty(previousParents))
                 {
-                    // Handle the case where there are no previous parents
-                    throw new InvalidOperationException($"File {file.Name} has no parent folder.");
+                    logAction($"Error: File {file.Name} does not have a parent.");
+                    continue; // Skip the file if it has no parent
                 }
 
-                var updateRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), file.Id);
-                updateRequest.AddParents = destinationFolderId;
-                updateRequest.RemoveParents = previousParents;
-                await updateRequest.ExecuteAsync();
+                try
+                {
+                    var updateRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), file.Id);
+                    updateRequest.AddParents = destinationFolderId;
+                    updateRequest.RemoveParents = previousParents;
+                    await updateRequest.ExecuteAsync();
 
-                logAction($"Moved file {file.Name} to folder {destinationFolderId}.");
+                    //// Step 1: Remove the file from its current parent folder
+                    //var removeParentRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), file.Id);
+                    //removeParentRequest.RemoveParents = previousParents; // Explicitly remove the file from the current parent
+                    //removeParentRequest.Fields = "id, parents";
+
+                    //await removeParentRequest.ExecuteAsync();
+
+                    //// Step 2: Add the file to the new parent folder
+                    //var addParentRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), file.Id);
+                    //addParentRequest.AddParents = destinationFolderId; // Add the file to the destination parent folder
+                    //addParentRequest.Fields = "id, parents";
+
+                    //await addParentRequest.ExecuteAsync();
+
+                    logAction($"Successfully moved file {file.Name} to folder {email} (id: {destinationFolderId})");
+                }
+                catch (Google.GoogleApiException ex)
+                {
+                    logAction($"Error moving file {file.Name}: {ex.Message}");
+                    throw; // Rethrow the exception for further handling if needed
+                }
             }
         }
-
 
         // Method to list all subfolders in a specified parent folder on Google Drive
         public async Task<List<Google.Apis.Drive.v3.Data.File>> ListFoldersAsync(string parentFolderId)

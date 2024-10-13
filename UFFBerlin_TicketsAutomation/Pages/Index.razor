@@ -11,16 +11,24 @@
 
 <h3>Upload and Process CSV</h3>
 
+<div class="card info-card">
 <p><strong>Source Folder ID</strong> <small>(place the tickets here)</small>
     <a href="https://drive.google.com/drive/folders/@sourceFolderId" target="_blank">@sourceFolderId</a></p>
 <p><strong>Destination Folder ID</strong> <small>(for tickets sorted by recipients)</small>
     <a href="https://drive.google.com/drive/folders/@destinationFolderId" target="_blank">@destinationFolderId</a></p>
-
+</div>
 <InputFile OnChange="HandleFileSelected" />
 
 <br />
 <button class="btn btn-primary" @onclick="ProcessCsv" disabled="@isProcessing">Process CSV and Sort Files</button>
-
+<div style="margin: 10px 0">
+    <strong> <span class="oi oi-warning" aria-hidden="true"></span>CSV with the guest list should be in following format:</strong><br />
+    <div class="card info-card" style="margin: 0; padding: 5px 10px;">
+        name@gmail.com,1<br />
+        address@web.de,2
+    </div>
+    <div style="font-size:.75rem">(email and required ticket number, separated by comma)</div>
+</div>
 <h4>Log</h4>
 <textarea style="width: 100%; height: 200px;" readonly>@logContent</textarea>
 

@@ -42,7 +42,7 @@ namespace UFFBerlin_TicketsAutomation.Data
                     while ((line = await reader.ReadLineAsync()) != null)
                     {
                         totalRows++;
-                        var values = line.Split(',');
+                        var values = line.IndexOf(";") > -1 ? line.Split(';') : line.Split(',');
 
                         if (values.Length >= 2)
                         {
@@ -75,7 +75,7 @@ namespace UFFBerlin_TicketsAutomation.Data
                                 try
                                 {
                                     // Move files from the source folder to the new folder
-                                    await _googleDriveService.MoveFilesToFolderAsync(sourceFolderId, userFolderId, fileCount, logAction);
+                                    await _googleDriveService.MoveFilesToFolderAsync(sourceFolderId, userFolderId, fileCount, logAction, email);
                                     logAction($"Moved {fileCount} files for {email}.");
                                 }
                                 catch (InvalidOperationException ex)

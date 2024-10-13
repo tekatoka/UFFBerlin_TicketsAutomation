@@ -4,6 +4,10 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+main {
+    padding: 0 0 25px 0;
+}
+
 h1:focus {
     outline: none;
 }
@@ -79,4 +83,24 @@ h4 {
     .modal-lg {
         max-width: 50%; /* Optional: You can set it to 50% for smaller screens */
     }
+}
+
+.info-card {
+    background-color: #eee!important;
+    margin: 25px 0 25px;
+    padding: 15px 15px 5px 15px;
+    border: 1px solid grey;
+}
+
+.nav-link {
+    cursor: pointer;
+}
+
+.nav-tabs .nav-link.active, .tab-content {
+    background-color:#eee!important;
+}
+
+.tab-content {
+    margin: 0 0 25px 0;
+    padding: 10px 15px;
 }

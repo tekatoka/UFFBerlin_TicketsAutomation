@@ -13,10 +13,10 @@
 <!-- Tab Navigation -->
 <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" id="folders-tab" role="tab" aria-controls="folders" aria-selected="true" @onclick='() => ShowTab("folders")'>Configure Folders</a>
+        <a class="nav-link active" id="folders-tab" role="tab" aria-controls="folders" aria-selected="true" @onclick='() => ShowTab("folders")'><span class="oi oi-folder" aria-hidden="true" style="margin-right:10px"></span>Configure Folders</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" id="email-tab" role="tab" aria-controls="email" aria-selected="false" @onclick='() => ShowTab("email")'>Email Settings</a>
+        <a class="nav-link" id="email-tab" role="tab" aria-controls="email" aria-selected="false" @onclick='() => ShowTab("email")'><span class="oi oi-document" aria-hidden="true" style="margin-right:10px"></span>Configure Email</a>
     </li>
 </ul>
 
@@ -80,6 +80,9 @@
         <div class="form-group">
             <button class="btn btn-danger" @onclick="SendTestEmail">Send Test Email</button>
         </div>
+        <div class="form-group">
+            <p>@testEmailstatusMessage</p>
+        </div>
 
 
     </div>
@@ -117,6 +120,7 @@
     private string testEmailAddress = ""; // Holds the test email address
     private bool isSaving = false;
     private string statusMessage = "";
+    private string testEmailstatusMessage = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,16 +161,16 @@
             if (!string.IsNullOrEmpty(testEmailAddress))
             {
                 await EmailService.SendEmailAsync(testEmailAddress, settings.EmailSubject, emailBody, new List<string>());
-                statusMessage = $"Test email sent to {testEmailAddress}!";
+                testEmailstatusMessage = $"Test email sent to {testEmailAddress}!";
             }
             else
             {
-                statusMessage = "Test email address cannot be empty!";
+                testEmailstatusMessage = "Test email address cannot be empty!";
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error sending test email: {ex.Message}";
+            testEmailstatusMessage = $"Error sending test email: {ex.Message}";
         }
 
         StateHasChanged();

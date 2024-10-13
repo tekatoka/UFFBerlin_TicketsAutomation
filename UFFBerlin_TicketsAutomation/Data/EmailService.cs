@@ -66,6 +66,7 @@ namespace UFFBerlin_TicketsAutomation.Data
             _cachedSenderName = person.Names?.FirstOrDefault()?.DisplayName ?? "Unknown";
         }
 
+        //TODO: RATE LIMITER to send emails in batches
         public async Task SendEmailAsync(string recepientEmail, string subject, string body, List<string> attachmentPaths)
         {
             // Initialize Gmail service before sending an email
