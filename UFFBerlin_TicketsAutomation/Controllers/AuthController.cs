@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 public class AuthController : ControllerBase
 {
     private readonly GoogleAuthorizationService _googleAuthorizationService;
-    private readonly string callbackUrl = "https://localhost:5001/api/auth/oauth-callback"; //uffb.danabond.eu //localhost:5001
+    private readonly string callbackUrl = "https://uffb.danabond.eu/api/auth/oauth-callback"; //uffb.danabond.eu //localhost:5001
 
     public AuthController(GoogleAuthorizationService googleAuthorizationService)
     {

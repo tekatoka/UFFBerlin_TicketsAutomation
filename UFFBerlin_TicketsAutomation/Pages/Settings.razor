@@ -26,17 +26,17 @@
     <div class="tab-pane fade show active" id="folders" role="tabpanel" aria-labelledby="folders-tab">
         <h4>Configure Folders</h4>
         <div class="form-group">
-            <label>Source Folder ID (for the unsorted tickets)</label> (<a href="https://drive.google.com/drive/folders/@settings.SourceFolderId" target="_blank">test</a>)
+            <label>Raw tickets folder ID (for the unsorted tickets)</label> (<a href="https://drive.google.com/drive/folders/@settings.SourceFolderId" target="_blank">test</a>)
             <input type="text" class="form-control" @bind="settings.SourceFolderId" />
         </div>
 
         <div class="form-group">
-            <label>Destination Folder ID (for the tickets sorted by recipient)</label> (<a href="https://drive.google.com/drive/folders/@settings.DestinationFolderId" target="_blank">test</a>)
+            <label>Prepared emails folder ID (for the tickets sorted by recipient)</label> (<a href="https://drive.google.com/drive/folders/@settings.DestinationFolderId" target="_blank">test</a>)
             <input type="text" class="form-control" @bind="settings.DestinationFolderId" />
         </div>
 
         <div class="form-group">
-            <label>Archive Folder ID (for the tickets sent to recipients)</label> (<a href="https://drive.google.com/drive/folders/@settings.ArchiveFolderId" target="_blank">test</a>)
+            <label>Archive folder ID (emails with tickets sent to recipients will be moved here)</label> (<a href="https://drive.google.com/drive/folders/@settings.ArchiveFolderId" target="_blank">test</a>)
             <input type="text" class="form-control" @bind="settings.ArchiveFolderId" />
         </div>
     </div>
