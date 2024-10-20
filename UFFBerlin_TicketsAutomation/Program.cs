@@ -46,7 +46,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache(); // Required for session
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(300); // Set session timeout
+    options.IdleTimeout = TimeSpan.FromMinutes(3000000); // Set session timeout
     options.Cookie.HttpOnly = true; // Make session cookie HTTP-only
     options.Cookie.IsEssential = true; // Mark session cookie as essential
 });

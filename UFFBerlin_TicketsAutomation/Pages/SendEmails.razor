@@ -76,8 +76,11 @@
             // Initialize the status list
             emailStatuses = userFolders.Select(folder => new EmailStatus { Email = folder.Name, Status = "In Queue" }).ToList();
 
-            // Update UI to reflect the queued status
-            StateHasChanged();
+            Action<string> logAction = (message) =>
+            {
+                logContent += $"{DateTime.Now}: {message}\n";
+                StateHasChanged();
+            };
 
             foreach (var folder in userFolders)
             {
@@ -104,12 +107,16 @@
                     // Send the email
                     await EmailService.SendEmailAsync(folder.Name, emailSubject, emailBody, attachmentPaths);
 
+                    Random rnd = new Random();
+                    int randomDelay = rnd.Next(1000, 10000);
+                    await Task.Delay(randomDelay);
+
                     // Mark email as "Sent"
                     emailStatus.Status = "Sent";
                     AddToLog($"Email sent to {folder.Name}");
 
                     // Move folder to the archive folder
-                    await GoogleDriveService.MoveFolderAsync(folder.Id, sentEmailsFolderId);
+                    await GoogleDriveService.MoveFolderAsync(folder.Id, sentEmailsFolderId, logAction);
                     AddToLog($"Folder moved for {folder.Name}");
                 }
                 catch (Exception ex)

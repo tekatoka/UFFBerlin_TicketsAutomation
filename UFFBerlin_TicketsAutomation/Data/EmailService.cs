@@ -2,6 +2,7 @@ using Google.Apis.Gmail.v1;
 using Google.Apis.PeopleService.v1;
 using Google.Apis.Services;
 using MimeKit;
+using System.Text.RegularExpressions;
 using UFFBerlin_TicketsAutomation.Data.Authentication;
 
 namespace UFFBerlin_TicketsAutomation.Data
@@ -74,10 +75,13 @@ namespace UFFBerlin_TicketsAutomation.Data
 
             var emailMessage = new MimeMessage();
             emailMessage.From.Add(new MailboxAddress(_cachedSenderName, _cachedSenderEmail));
+            emailMessage.ReplyTo.Add(new MailboxAddress(_cachedSenderName, _cachedSenderEmail));
+            emailMessage.Headers.Add("Return-Path", _cachedSenderEmail);
+
             emailMessage.To.Add(new MailboxAddress("", recepientEmail));
             emailMessage.Subject = subject;
 
-            var bodyBuilder = new BodyBuilder { HtmlBody = body };
+            var bodyBuilder = new BodyBuilder { HtmlBody = body, TextBody = StripHtmlTags(body) };
 
             // Add attachments
             foreach (var path in attachmentPaths)
@@ -103,6 +107,17 @@ namespace UFFBerlin_TicketsAutomation.Data
             // Send the email
             var request = _service.Users.Messages.Send(gmailMessage, "me");
             await request.ExecuteAsync();
+        }
+
+        public string StripHtmlTags(string htmlContent)
+        {
+            // Use Regex to remove HTML tags
+            string plainText = Regex.Replace(htmlContent, "<.*?>", string.Empty);
+
+            // Decode any HTML-encoded characters (e.g., &amp; -> &)
+            plainText = System.Net.WebUtility.HtmlDecode(plainText);
+
+            return plainText;
         }
     }
 }

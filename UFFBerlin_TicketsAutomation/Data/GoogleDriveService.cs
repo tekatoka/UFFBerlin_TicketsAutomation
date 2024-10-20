@@ -147,23 +147,31 @@ namespace UFFBerlin_TicketsAutomation.Data
             return attachmentPaths;
         }
 
-        public async Task MoveFolderAsync(string folderId, string destinationParentFolderId)
+        public async Task MoveFolderAsync(string folderId, string destinationParentFolderId, Action<string> logAction)
         {
-            await InitializeDriveServiceAsync();
+            try
+            {
+                await InitializeDriveServiceAsync();
 
-            // Get the current parent of the folder (this is required to remove the folder from the current parent)
-            var getRequest = _service.Files.Get(folderId);
-            getRequest.Fields = "parents";
-            var file = await getRequest.ExecuteAsync();
+                // Get the current parent of the folder (this is required to remove the folder from the current parent)
+                var getRequest = _service.Files.Get(folderId);
+                getRequest.Fields = "parents";
+                var file = await getRequest.ExecuteAsync();
 
-            var previousParents = string.Join(",", file.Parents);
+                //var previousParents = string.Join(",", file.Parents);
+                var previousParents = file.Parents != null ? string.Join(",", file.Parents) : null;
 
-            // Move the folder by updating its parent to the new destination folder
-            var updateRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), folderId);
-            updateRequest.AddParents = destinationParentFolderId;
-            updateRequest.RemoveParents = previousParents;
+                // Move the folder by updating its parent to the new destination folder
+                var updateRequest = _service.Files.Update(new Google.Apis.Drive.v3.Data.File(), folderId);
+                updateRequest.AddParents = destinationParentFolderId;
+                updateRequest.RemoveParents = previousParents;
 
-            await updateRequest.ExecuteAsync();
+                await updateRequest.ExecuteAsync();
+            }
+            catch (Exception ex) {
+                logAction($"Error moving folder {folderId}: {ex.Message}");
+                throw; // Rethrow the exception for further handling if needed
+            }
         }
 
         public async Task<bool> FolderExistsAsync(string folderId, string parentFolderId = null)
